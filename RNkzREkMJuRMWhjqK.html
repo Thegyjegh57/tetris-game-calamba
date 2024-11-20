@@ -1,0 +1,1176 @@
+<html><head><base href="/" /><style>
+.game-title {
+  font-size: 2.5em;
+  color: #f0f0f0;
+  text-align: center;
+  margin: 20px 0;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  font-family: 'Arial Black', sans-serif;
+  letter-spacing: 2px;
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+  }
+  to {
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+  }
+}
+
+:root {
+  --cell-size: 30px;
+  --board-width: 10;
+  --board-height: 20;
+}
+
+body {
+  background: #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: Arial, sans-serif;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+  margin: 0;
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+    repeating-linear-gradient(
+      45deg,
+      rgba(115, 38, 38, 0.8) 0px,
+      rgba(115, 38, 38, 0.8) 2px,
+      rgba(102, 36, 36, 0.9) 2px,
+      rgba(102, 36, 36, 0.9) 4px
+    ),
+    repeating-linear-gradient(
+      #732626 0px,
+      #732626 24px,
+      #662424 24px,
+      #662424 48px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      #732626 0px,
+      #732626 24px,
+      #662424 24px,
+      #662424 48px
+    );
+  background-blend-mode: overlay, multiply, normal, normal;
+  transition: background 0.3s ease;
+}
+
+#settings-menu {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 20px;
+  border-radius: 10px;
+  color: white;
+  z-index: 100;
+  min-width: 200px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  display: none;
+}
+
+#settings-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #444;
+  color: white;
+  border: none;
+  padding: 15px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  z-index: 101;
+  font-size: 1.2em;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+#settings-btn:hover {
+  background: #666;
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
+.setting-item {
+  margin: 10px 0;
+}
+
+.setting-item label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+.setting-item input[type="range"] {
+  width: 100%;
+}
+
+.setting-item .value-display {
+  color: #00ff00;
+  font-size: 0.9em;
+  margin-left: 10px;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+  background-size: 100px 100px;
+  animation: twinkle 3s infinite alternate;
+}
+
+@keyframes twinkle {
+  0% { opacity: 0.3; }
+  100% { opacity: 0.7; }
+}
+
+@keyframes blockFall {
+  0% {
+    transform: translateY(-100px) rotate(0deg);
+    opacity: 0.1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+@keyframes snowfall {
+  0% {
+    transform: translateY(-10px) translateX(-50%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) translateX(50%);
+    opacity: 0;
+  }
+}
+
+.snowflake {
+  position: fixed;
+  color: white;
+  font-size: 20px;
+  user-select: none;
+  z-index: -1;
+}
+
+.falling-block {
+  position: fixed;
+  z-index: -1;
+  opacity: 0.1;
+  pointer-events: none;
+  filter: blur(2px);
+}
+
+#game-container {
+  position: relative;
+  margin: 20px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-start;
+}
+
+#hold-piece-container {
+  position: absolute;
+  right: calc(100% + 20px);
+  top: 0;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+#hold-piece-preview {
+  display: grid;
+  grid-template-columns: repeat(4, var(--cell-size));
+  grid-template-rows: repeat(4, var(--cell-size));
+  gap: 1px;
+  background: #333;
+  border: 2px solid #666;
+  margin-top: 10px;
+}
+
+#next-piece-container {
+  position: absolute;
+  left: calc(100% + 20px);
+  top: 0;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+}
+
+#next-piece-score {
+  margin-top: 20px;
+  text-align: center;
+  font-size: 1.2em;
+  color: #f0f0f0;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+#next-piece-level {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 1.2em;
+  color: #f0f0f0;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+
+.next-piece-button {
+  margin-top: 15px;
+  background: #444;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+  font-size: 1.1em;
+  transition: all 0.2s ease;
+}
+
+.next-piece-button:hover {
+  background: #666;
+  transform: scale(1.05);
+}
+
+#next-piece-preview {
+  display: grid;
+  grid-template-columns: repeat(4, var(--cell-size));
+  grid-template-rows: repeat(4, var(--cell-size));
+  gap: 1px;
+  background: #333;
+  border: 2px solid #666;
+  margin-top: 10px;
+}
+
+#game-board {
+  display: grid;
+  grid-template-columns: repeat(var(--board-width), var(--cell-size));
+  grid-template-rows: repeat(var(--board-height), var(--cell-size));
+  gap: 1px;
+  background: #333;
+  border: 2px solid #666;
+}
+
+.cell {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  background: #222;
+}
+
+.filled {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.piece-I { 
+  background: #00f0f0; 
+  box-shadow: 0 0 5px #00f0f0, inset 0 0 2px rgba(255,255,255,0.5);
+  border: 1px solid #4dffff;
+}
+.piece-O { 
+  background: #f0f000;
+  box-shadow: 0 0 5px #f0f000, inset 0 0 2px rgba(255,255,255,0.5);
+  border: 1px solid #ffff4d;
+}
+.piece-T { 
+  background: #a000f0;
+  box-shadow: 0 0 5px #a000f0, inset 0 0 2px rgba(255,255,255,0.5); 
+  border: 1px solid #bf4dff;
+}
+.piece-S { 
+  background: #00f000;
+  box-shadow: 0 0 5px #00f000, inset 0 0 2px rgba(255,255,255,0.5);
+  border: 1px solid #4dff4d;
+}
+.piece-Z { 
+  background: #f00000;
+  box-shadow: 0 0 5px #f00000, inset 0 0 2px rgba(255,255,255,0.5);
+  border: 1px solid #ff4d4d;
+}
+.piece-J { 
+  background: #0000f0;
+  box-shadow: 0 0 5px #0000f0, inset 0 0 2px rgba(255,255,255,0.5);
+  border: 1px solid #4d4dff;
+}
+.piece-L { 
+  background: #f0a000;
+  box-shadow: 0 0 5px #f0a000, inset 0 0 2px rgba(255,255,255,0.5);
+  border: 1px solid #ffb84d;
+}
+
+#score {
+  font-size: 24px;
+  margin: 20px;
+}
+
+#level {
+  font-size: 24px;
+  margin: 20px;
+}
+
+.stats {
+  position: absolute;
+  right: calc(100% + 20px); 
+  top: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 20px;
+  border-radius: 10px;
+  text-align: left;
+  gap: 10px;
+  min-width: 150px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+  margin-top: 20px;
+}
+
+#control-box {
+  position: absolute;
+  right: calc(100% + 20px);
+  top: 160px;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  min-width: 150px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
+}
+
+#control-box h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #f0f0f0;
+}
+
+#control-box p {
+  margin: 10px 0;
+  font-size: 0.9em;
+  color: #f0f0f0;
+}
+
+#game-over {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.9);
+  padding: 20px;
+  border-radius: 10px;
+  display: none;
+  text-align: center;
+}
+
+.controls {
+  margin: 20px;
+  text-align: center;
+}
+
+.controls button {
+  background: #444;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 10px;
+}
+
+.controls button:hover {
+  background: #666;
+}
+
+.countdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 72px;
+  color: white;
+  z-index: 100;
+  animation: countdownPulse 1s ease-in-out;
+}
+
+@keyframes countdownPulse {
+  0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+  50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+
+#score-btn {
+  position: absolute;
+  right: calc(100% + 20px);
+  top: 460px;
+  background: #444;
+  color: white;
+  border: none;
+  padding: 15px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  transition: all 0.2s ease;
+}
+
+#score-btn:hover {
+  background: #666;
+  transform: scale(1.05);
+  transition: all 0.2s ease;
+}
+
+#high-scores {
+  position: absolute;
+  right: calc(100% + 20px);
+  top: 520px;
+  background: rgba(0, 0, 0, 0.8);
+  padding: 20px;
+  border-radius: 10px;
+  min-width: 250px;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#high-scores h2 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  text-align: center;
+  font-size: 1.4em;
+  color: #f0f0f0;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+.score-entry {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 15px;
+  margin: 10px 0;
+  padding: 10px 15px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.score-entry .rank {
+  font-weight: bold;
+  color: #f0f0f0;
+  font-size: 1.1em;
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
+.score-entry .score {
+  text-align: right;
+  color: #ffd700;
+  font-size: 1.1em;
+  text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+}
+
+.score-entry .level {
+  color: #00ff00;
+  font-size: 1.1em;
+  text-shadow: 0 0 5px rgba(0, 255, 0, 0.5);
+}
+
+.score-entry:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(5px);
+}
+
+.score-entry.new {
+  animation: highlight 1s ease-in-out;
+}
+
+@keyframes highlight {
+  0%, 100% { background: rgba(255, 255, 255, 0.1); }
+  50% { background: rgba(255, 255, 255, 0.3); }
+}
+</style></head><body>
+<h1 class="game-title">Calamba's Work</h1>
+<div class="stats">
+  <div id="score">Score: <span id="score-value">0</span></div>
+  <div id="level">Level: <span id="level-value">1</span></div>
+  <div id="lines">Lines: <span id="lines-value">0</span></div>
+</div>
+<div id="game-container">
+  <div id="hold-piece-container">
+    <h3>Hold Piece</h3>
+    <div id="hold-piece-preview"></div>
+</div>
+<div id="control-box">
+    <h3>Controls</h3>
+    <p>← Move Left</p>
+    <p>→ Move Right</p>
+    <p>↓ Soft Drop</p>
+    <p>↑ Rotate</p>
+    <p>Space Hard Drop</p>
+    <p>Shift Hold</p>
+    <p>P Pause</p>
+</div>
+  <div id="game-board"></div>
+  <div id="next-piece-container">
+    <h3>Next Piece</h3>
+    <div id="next-piece-preview"></div>
+    <div id="next-piece-score">Score: <span id="next-piece-score-value">0</span></div>
+    <div id="next-piece-level">Level: <span id="next-piece-level-value">1</span></div>
+    <button id="start-btn" class="next-piece-button">Start Game</button>
+  </div>
+  <div id="game-over">
+    <h2 id="game-over-text">Welcome!</h2>
+    <button onclick="startGame()">Start Game</button>
+  </div>
+</div>
+<button id="settings-btn">⚙️ Settings</button>
+<div id="settings-menu">
+  <h3>Settings</h3>
+  <div class="setting-item">
+    <label>Music Volume <span id="music-value" class="value-display">50%</span></label>
+    <input type="range" id="music-volume" min="0" max="100" value="50">
+  </div>
+  <div class="setting-item">
+    <label>SFX Volume <span id="sfx-value" class="value-display">50%</span></label>
+    <input type="range" id="sfx-volume" min="0" max="100" value="50">
+  </div>
+  <div class="setting-item">
+    <label>Visual Effects</label>
+    <input type="checkbox" id="visual-effects" checked>
+  </div>
+  <div class="setting-item">
+    <label>Background Style</label>
+    <select id="bg-style">
+      <option value="brick">Brick</option>
+      <option value="dark">Dark</option>
+      <option value="light">Light</option>
+    </select>
+  </div>
+</div>
+<div class="controls">
+  <button id="pause-btn">Pause</button>
+  <p>Controls: ←↓→ to move, ↑ to rotate, Space to drop, P to pause, Shift to hold</p>
+</div>
+<button id="score-btn">📊 Score</button>
+<div id="high-scores" style="display: none">
+  <h2>High Scores</h2>
+  <div id="scores-list"></div>
+</div>
+
+<script>
+const SHAPES = {
+  'I': [[1, 1, 1, 1]],
+  'O': [[1, 1], [1, 1]],
+  'T': [[0, 1, 0], [1, 1, 1]],
+  'S': [[0, 1, 1], [1, 1, 0]],
+  'Z': [[1, 1, 0], [0, 1, 1]],
+  'J': [[1, 0, 0], [1, 1, 1]],
+  'L': [[0, 0, 1], [1, 1, 1]]
+};
+
+class Tetris {
+  constructor() {
+    this.board = Array(20).fill().map(() => Array(10).fill(0));
+    this.score = 0;
+    this.level = 1;
+    this.linesCleared = 0;
+    this.gameOver = false;
+    this.isPaused = false;
+    this.dropInterval = 1000;
+    this.dropSpeed = 50;
+    this.createBoard();
+    this.currentPiece = null;
+    this.nextPiece = null;
+    this.currentPosition = { x: 0, y: 0 };
+    this.holdPiece = null;
+    this.hasSwapped = false;
+    this.updateScoreDisplays();
+    this.createNextPiecePreview();
+    this.createHoldPiecePreview();
+  }
+
+  togglePause() {
+    this.isPaused = !this.isPaused;
+    const pauseBtn = document.getElementById('pause-btn');
+    pauseBtn.textContent = this.isPaused ? 'Resume' : 'Pause';
+    if (this.isPaused) {
+      document.getElementById('game-over-text').textContent = 'Game Paused';
+      document.getElementById('game-over').style.display = 'block';
+    } else {
+      document.getElementById('game-over').style.display = 'none';
+    }
+  }
+
+  updateScoreDisplays() {
+    document.getElementById('score-value').textContent = this.score;
+    document.getElementById('next-piece-score-value').textContent = this.score;
+    document.getElementById('level-value').textContent = this.level;
+    document.getElementById('next-piece-level-value').textContent = this.level;
+    document.getElementById('lines-value').textContent = this.linesCleared;
+  }
+
+  createBoard() {
+    const board = document.getElementById('game-board');
+    board.innerHTML = '';
+    for (let y = 0; y < 20; y++) {
+      for (let x = 0; x < 10; x++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.x = x;
+        cell.dataset.y = y;
+        board.appendChild(cell);
+      }
+    }
+  }
+
+  createNextPiecePreview() {
+    const preview = document.getElementById('next-piece-preview');
+    preview.innerHTML = '';
+    for (let y = 0; y < 4; y++) {
+      for (let x = 0; x < 4; x++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.previewX = x;
+        cell.dataset.previewY = y;
+        preview.appendChild(cell);
+      }
+    }
+  }
+
+  createHoldPiecePreview() {
+    const preview = document.getElementById('hold-piece-preview');
+    preview.innerHTML = '';
+    for (let y = 0; y < 4; y++) {
+      for (let x = 0; x < 4; x++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.holdX = x;
+        cell.dataset.holdY = y;
+        preview.appendChild(cell);
+      }
+    }
+  }
+
+  drawNextPiece() {
+    document.querySelectorAll('#next-piece-preview .cell').forEach(cell => {
+      cell.className = 'cell';
+    });
+
+    if (this.nextPiece) {
+      const offsetX = Math.floor((4 - this.nextPiece.shape[0].length) / 2);
+      const offsetY = Math.floor((4 - this.nextPiece.shape.length) / 2);
+
+      this.nextPiece.shape.forEach((row, y) => {
+        row.forEach((value, x) => {
+          if (value) {
+            const cell = document.querySelector(
+              `[data-preview-x="${x + offsetX}"][data-preview-y="${y + offsetY}"]`
+            );
+            if (cell) {
+              cell.className = `cell filled piece-${this.nextPiece.type}`;
+            }
+          }
+        });
+      });
+    }
+  }
+
+  drawHoldPiece() {
+    document.querySelectorAll('#hold-piece-preview .cell').forEach(cell => {
+      cell.className = 'cell';
+    });
+
+    if (this.holdPiece) {
+      const offsetX = Math.floor((4 - this.holdPiece.shape[0].length) / 2);
+      const offsetY = Math.floor((4 - this.holdPiece.shape.length) / 2);
+
+      this.holdPiece.shape.forEach((row, y) => {
+        row.forEach((value, x) => {
+          if (value) {
+            const cell = document.querySelector(
+              `[data-hold-x="${x + offsetX}"][data-hold-y="${y + offsetY}"]`
+            );
+            if (cell) {
+              cell.className = `cell filled piece-${this.holdPiece.type}`;
+            }
+          }
+        });
+      });
+    }
+  }
+
+  swapHoldPiece() {
+    if (this.hasSwapped) return;
+
+    if (!this.holdPiece) {
+      this.holdPiece = {
+        shape: this.currentPiece.shape,
+        type: this.currentPiece.type
+      };
+      this.newPiece();
+    } else {
+      const temp = this.currentPiece;
+      this.currentPiece = this.holdPiece;
+      this.holdPiece = temp;
+      this.currentPosition = {
+        x: Math.floor((10 - this.currentPiece.shape[0].length) / 2),
+        y: 0
+      };
+    }
+
+    this.hasSwapped = true;
+    this.drawHoldPiece();
+  }
+
+  newPiece() {
+    this.hasSwapped = false;
+
+    if (this.nextPiece) {
+      this.currentPiece = this.nextPiece;
+    } else {
+      const pieces = Object.keys(SHAPES);
+      const pieceType = pieces[Math.floor(Math.random() * pieces.length)];
+      this.currentPiece = {
+        shape: SHAPES[pieceType],
+        type: pieceType
+      };
+    }
+
+    const pieces = Object.keys(SHAPES);
+    const pieceType = pieces[Math.floor(Math.random() * pieces.length)];
+    this.nextPiece = {
+      shape: SHAPES[pieceType],
+      type: pieceType
+    };
+
+    this.currentPosition = {
+      x: Math.floor((10 - this.currentPiece.shape[0].length) / 2),
+      y: 0
+    };
+
+    if (!this.isValidMove(this.currentPosition.x, this.currentPosition.y)) {
+      this.gameOverHandler();
+    }
+
+    this.drawNextPiece();
+  }
+
+  draw() {
+    document.querySelectorAll('.cell').forEach(cell => {
+      cell.className = 'cell';
+    });
+
+    for (let y = 0; y < 20; y++) {
+      for (let x = 0; x < 10; x++) {
+        if (this.board[y][x]) {
+          const cell = document.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+          cell.className = `cell filled piece-${this.board[y][x]}`;
+        }
+      }
+    }
+
+    if (this.currentPiece) {
+      this.currentPiece.shape.forEach((row, y) => {
+        row.forEach((value, x) => {
+          if (value) {
+            const cell = document.querySelector(
+              `[data-x="${x + this.currentPosition.x}"][data-y="${y + this.currentPosition.y}"]`
+            );
+            if (cell) {
+              cell.className = `cell filled piece-${this.currentPiece.type}`;
+            }
+          }
+        });
+      });
+    }
+
+    this.drawNextPiece();
+    this.drawHoldPiece();
+  }
+
+  isValidMove(newX, newY, rotatedShape = null) {
+    const shape = rotatedShape || this.currentPiece.shape;
+    return shape.every((row, y) => {
+      return row.every((value, x) => {
+        if (!value) return true;
+        const boardX = newX + x;
+        const boardY = newY + y;
+        return (
+          boardX >= 0 &&
+          boardX < 10 &&
+          boardY < 20 &&
+          boardY >= 0 &&
+          !this.board[boardY][boardX]
+        );
+      });
+    });
+  }
+
+  rotate() {
+    const rotated = this.currentPiece.shape[0].map((_, i) =>
+      this.currentPiece.shape.map(row => row[i]).reverse()
+    );
+
+    if (this.isValidMove(this.currentPosition.x, this.currentPosition.y, rotated)) {
+      this.currentPiece.shape = rotated;
+    }
+  }
+
+  moveDown() {
+    if (this.isValidMove(this.currentPosition.x, this.currentPosition.y + 1)) {
+      this.currentPosition.y++;
+      return true;
+    }
+    this.freezePiece();
+    return false;
+  }
+
+  moveLeft() {
+    if (this.isValidMove(this.currentPosition.x - 1, this.currentPosition.y)) {
+      this.currentPosition.x--;
+    }
+  }
+
+  moveRight() {
+    if (this.isValidMove(this.currentPosition.x + 1, this.currentPosition.y)) {
+      this.currentPosition.x++;
+    }
+  }
+
+  freezePiece() {
+    this.currentPiece.shape.forEach((row, y) => {
+      row.forEach((value, x) => {
+        if (value) {
+          this.board[y + this.currentPosition.y][x + this.currentPosition.x] = this.currentPiece.type;
+        }
+      });
+    });
+    this.clearLines();
+    this.newPiece();
+  }
+
+  clearLines() {
+    let linesCleared = 0;
+    for (let y = 0; y < 20; y++) {
+      if (this.board[y].every(cell => cell)) {
+        this.board.splice(y, 1);
+        this.board.unshift(Array(10).fill(0));
+        this.score += 100 * this.level;
+        linesCleared++;
+        this.linesCleared++;
+      }
+    }
+
+    this.updateScoreDisplays();
+
+    if (Math.floor(this.linesCleared / 10) + 1 > this.level) {
+      this.level++;
+      this.updateScoreDisplays();
+      this.dropInterval = Math.max(100, 1000 - (this.level - 1) * 100);
+      if (gameLoop) {
+        clearInterval(gameLoop);
+        gameLoop = setInterval(() => {
+          if (!game.gameOver && !game.isPaused) {
+            game.moveDown();
+            game.draw();
+          }
+        }, this.dropInterval);
+      }
+    }
+  }
+
+  drop() {
+    while (this.moveDown()) {}
+  }
+
+  gameOverHandler() {
+    this.gameOver = true;
+    document.getElementById('game-over').style.display = 'block';
+    highScores.add({score: this.score, level: this.level});
+  }
+}
+
+let game = null;
+let gameLoop = null;
+
+function handleKeyPress(event) {
+  if (!game || game.gameOver) return;
+  
+  if (game.isPaused && event.keyCode !== 80) return;
+
+  switch (event.keyCode) {
+    case 37: // Left
+      if (!game.isPaused) game.moveLeft();
+      break;
+    case 39: // Right
+      if (!game.isPaused) game.moveRight();
+      break;
+    case 40: // Down
+      if (!game.isPaused) {
+        game.moveDown();
+        game.score += 1; 
+        game.updateScoreDisplays();
+      }
+      break;
+    case 38: // Up
+      if (!game.isPaused) game.rotate();
+      break;
+    case 32: // Space
+      if (!game.isPaused) {
+        let dropDistance = 0;
+        while (game.moveDown()) {
+          dropDistance++;
+        }
+        game.score += dropDistance * 2; 
+        game.updateScoreDisplays();
+      }
+      break;
+    case 80: // P key
+      game.togglePause();
+      break;
+    case 16: // Shift
+      if (!game.isPaused) game.swapHoldPiece();
+      break;
+  }
+  if (!game.isPaused) game.draw();
+}
+
+function startGame() {
+  if (gameLoop) clearInterval(gameLoop);
+  document.getElementById('game-over').style.display = 'none';
+  document.getElementById('game-over-text').textContent = 'Game Over!';
+  game = new Tetris();
+  game.newPiece();
+  game.draw();
+  
+  gameLoop = setInterval(() => {
+    if (!game.gameOver && !game.isPaused) {
+      game.moveDown();
+      game.draw();
+    }
+  }, game.dropInterval);
+}
+
+document.addEventListener('keydown', handleKeyPress);
+
+class HighScores {
+  constructor() {
+    this.scores = JSON.parse(localStorage.getItem('tetrisHighScores')) || [];
+  }
+
+  add(gameData) {
+    this.scores.push(gameData);
+    this.scores.sort((a, b) => b.score - a.score);
+    this.scores = this.scores.slice(0, 5);
+    localStorage.setItem('tetrisHighScores', JSON.stringify(this.scores));
+    this.display();
+  }
+
+  display() {
+    const scoresList = document.getElementById('scores-list');
+    scoresList.innerHTML = '';
+    this.scores.forEach((gameData, index) => {
+      const entry = document.createElement('div');
+      entry.className = 'score-entry';
+      entry.innerHTML = `
+        <span class="rank">#${index + 1}</span>
+        <span class="score">${gameData.score.toLocaleString()}</span>
+        <span class="level">Lvl ${gameData.level}</span>
+      `;
+      if (gameData === this.scores[this.scores.length - 1]) {
+        entry.classList.add('new');
+      }
+      scoresList.appendChild(entry);
+    });
+  }
+}
+
+const highScores = new HighScores();
+highScores.display();
+
+class Settings {
+  constructor() {
+    this.loadSettings();
+    this.initializeControls();
+  }
+
+  loadSettings() {
+    this.settings = JSON.parse(localStorage.getItem('tetrisSettings')) || {
+      musicVolume: 50,
+      sfxVolume: 50,
+      visualEffects: true,
+      bgStyle: 'brick'
+    };
+  }
+
+  saveSettings() {
+    localStorage.setItem('tetrisSettings', JSON.stringify(this.settings));
+  }
+
+  initializeControls() {
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsMenu = document.getElementById('settings-menu');
+    const musicVolume = document.getElementById('music-volume');
+    const sfxVolume = document.getElementById('sfx-volume');
+    const visualEffects = document.getElementById('visual-effects');
+    const bgStyle = document.getElementById('bg-style');
+
+    musicVolume.value = this.settings.musicVolume;
+    sfxVolume.value = this.settings.sfxVolume;
+    visualEffects.checked = this.settings.visualEffects;
+    bgStyle.value = this.settings.bgStyle;
+    
+    document.getElementById('music-value').textContent = `${this.settings.musicVolume}%`;
+    document.getElementById('sfx-value').textContent = `${this.settings.sfxVolume}%`;
+
+    settingsBtn.addEventListener('click', () => {
+      settingsMenu.style.display = settingsMenu.style.display === 'none' ? 'block' : 'none';
+    });
+
+    musicVolume.addEventListener('input', (e) => {
+      this.settings.musicVolume = e.target.value;
+      document.getElementById('music-value').textContent = `${e.target.value}%`;
+      this.saveSettings();
+      this.applySettings();
+    });
+
+    sfxVolume.addEventListener('input', (e) => {
+      this.settings.sfxVolume = e.target.value;
+      document.getElementById('sfx-value').textContent = `${e.target.value}%`;
+      this.saveSettings();
+      this.applySettings();
+    });
+
+    visualEffects.addEventListener('change', (e) => {
+      this.settings.visualEffects = e.target.checked;
+      this.saveSettings();
+      this.applySettings();
+    });
+
+    bgStyle.addEventListener('change', (e) => {
+      this.settings.bgStyle = e.target.value;
+      this.saveSettings();
+      this.applySettings();
+    });
+  }
+
+  applySettings() {
+    const snowflakes = document.querySelectorAll('.snowflake');
+    const fallingBlocks = document.querySelectorAll('.falling-block');
+    
+    if (!this.settings.visualEffects) {
+      snowflakes.forEach(s => s.style.display = 'none');
+      fallingBlocks.forEach(b => b.style.display = 'none');
+    } else {
+      snowflakes.forEach(s => s.style.display = 'block');
+      fallingBlocks.forEach(b => b.style.display = 'block');
+    }
+
+    const body = document.body;
+    switch(this.settings.bgStyle) {
+      case 'dark':
+        body.style.background = '#1a1a1a';
+        break;
+      case 'light':
+        body.style.background = '#4a4a4a';
+        break;
+      case 'brick':
+        body.style.backgroundImage = `
+          linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+          repeating-linear-gradient(#732626 0px, #732626 24px, #662424 24px, #662424 48px),
+          repeating-linear-gradient(90deg, #732626 0px, #732626 24px, #662424 24px, #662424 48px)`;
+        break;
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  createSnowflakes();
+  createFallingBlocks();
+  highScores.display();
+  
+  const settings = new Settings();
+  
+  document.getElementById('pause-btn').addEventListener('click', () => {
+    if (game) game.togglePause();
+  });
+
+  document.getElementById('score-btn').addEventListener('click', () => {
+    const highScoresElement = document.getElementById('high-scores');
+    highScoresElement.style.display = highScoresElement.style.display === 'none' ? 'block' : 'none';
+  });
+
+  document.getElementById('start-btn').addEventListener('click', startGame);
+});
+
+function createFallingBlocks() {
+  const shapes = [
+    '<svg width="60" height="60" viewBox="0 0 60 60"><rect width="60" height="15" fill="#00f0f0"/></svg>', // I
+    '<svg width="30" height="30" viewBox="0 0 30 30"><rect width="30" height="30" fill="#f0f000"/></svg>', // O
+    '<svg width="45" height="30" viewBox="0 0 45 30"><rect width="45" height="15" fill="#a000f0"/><rect x="15" y="15" width="15" height="15" fill="#a000f0"/></svg>', // T
+    '<svg width="45" height="30" viewBox="0 0 45 30"><rect x="15" width="30" height="15" fill="#00f000"/><rect y="15" width="30" height="15" fill="#00f000"/></svg>' // S
+  ];
+
+  setInterval(() => {
+    const block = document.createElement('div');
+    block.className = 'falling-block';
+    block.innerHTML = shapes[Math.floor(Math.random() * shapes.length)];
+    block.style.left = Math.random() * 100 + 'vw';
+    block.style.animation = `blockFall ${Math.random() * 5 + 3}s linear forwards`;
+
+    document.body.appendChild(block);
+    
+    setTimeout(() => {
+      document.body.removeChild(block);
+    }, 8000);
+  }, 500);
+}
+
+function createSnowflakes() {
+  const snowflakes = ['❄', '❅', '❆'];
+  const container = document.body;
+
+  setInterval(() => {
+    const snowflake = document.createElement('span');
+    snowflake.className = 'snowflake';
+    snowflake.textContent = snowflakes[Math.floor(Math.random() * snowflakes.length)];
+    snowflake.style.left = Math.random() * 100 + 'vw';
+    snowflake.style.animationDuration = Math.random() * 3 + 2 + 's';
+    snowflake.style.opacity = Math.random();
+    snowflake.style.animation = `snowfall ${Math.random() * 3 + 2}s linear forwards`;
+
+    container.appendChild(snowflake);
+    
+    setTimeout(() => {
+      container.removeChild(snowflake);
+    }, 5000);
+  }, 100);
+}
+
+</script>
+</body></html>
